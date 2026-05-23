@@ -94,12 +94,3 @@ docker run --name weather-test-postgres \
 cd api-service
 TEST_DATABASE_URL="postgres://postgres:postgres@localhost:5437/weather_test?sslmode=disable" go test ./internal/repository
 ```
-
-## CI/CD
-
-GitHub Actions workflow is placed in `.github/workflows/ci.yml`.
-It runs:
-
-- API service tests;
-- gateway service tests;
-- Docker Compose image build.
