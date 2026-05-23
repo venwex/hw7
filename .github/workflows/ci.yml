@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main, hw6]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: weather_test
+        ports:
+          - 5437:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d weather_test"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache-dependency-path: |
+            api-service/go.sum
+            gateway-service/go.sum
+
+      - name: Test API service
+        working-directory: api-service
+        env:
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5437/weather_test?sslmode=disable
+        run: go test ./...
+
+      - name: Test gateway service
+        working-directory: gateway-service
+        run: go test ./...
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker images
+        run: docker compose build

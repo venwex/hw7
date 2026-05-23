@@ -1,0 +1,1 @@
+drop table if exists weather_history;

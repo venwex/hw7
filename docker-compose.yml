@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: weather-postgres
+    environment:
+      POSTGRES_USER: weather
+      POSTGRES_PASSWORD: weather
+      POSTGRES_DB: weather
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U weather -d weather"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  gateway-service:
+    build:
+      context: ./gateway-service
+    container_name: weather-gateway-service
+    environment:
+      PORT: "8081"
+    ports:
+      - "8081:8081"
+
+  api-service:
+    build:
+      context: ./api-service
+    container_name: weather-api-service
+    environment:
+      JWT_SECRET: "dev-secret-change-me"
+      ACCESS_TOKEN_TTL: "30m"
+      DATABASE_DRIVER: "postgres"
+      DATABASE_HOST: "postgres"
+      DATABASE_PORT: "5432"
+      DATABASE_USER: "weather"
+      DATABASE_PASSWORD: "weather"
+      DATABASE_NAME: "weather"
+      DATABASE_SSLMODE: "disable"
+      GATEWAY_BASE_URL: "http://gateway-service:8081"
+      MIGRATIONS_PATH: "db/migrations"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      gateway-service:
+        condition: service_started
+
+volumes:
+  postgres-data:
